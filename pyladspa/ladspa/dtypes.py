@@ -1,4 +1,4 @@
-from ctypes import Structure, c_float, POINTER, c_char_p, c_ulong, c_void_p, c_int
+from ctypes import Structure, c_float, POINTER, c_char_p, c_ulong, c_void_p, c_int, pointer
 
 
 class LadspaConsts:
@@ -25,7 +25,7 @@ class LadspaConsts:
 
     @classmethod
     def is_port_input(cls, inp):
-        return bool(inp & cls.LADSPA_PORT_AUDIO)
+        return bool(inp & cls.LADSPA_PORT_INPUT)
     
     @classmethod
     def is_port_output(cls, inp):
@@ -140,8 +140,8 @@ class LADSPA_Descriptor(Structure):
         ("Maker", c_char_p),
         ("Copyright", c_char_p),
         ("PortCount", c_ulong),
-        ("PortDescriptors", c_void_p), # actually an int*
-        ("PortNames", c_void_p), # actually a const* char*
+        ("PortDescriptors", POINTER(c_int)), # actually an int*
+        ("PortNames", POINTER(c_char_p)), # actually a const* char*
         ("PortRangeHints", POINTER(LADSPA_PortRangeHint)),
         ("ImplementationData", c_void_p),
         ("instantiate", c_void_p),
@@ -153,10 +153,3 @@ class LADSPA_Descriptor(Structure):
         ("deactivate", c_void_p),
         ("cleanup", c_void_p)
     ]
-
-
-def ladspa_descriptor(ladspa_lib):
-    res = ladspa_lib.ladspa_descriptor
-    res.argtypes = [c_ulong]
-    res.restype = POINTER(LADSPA_Descriptor)
-    return res
