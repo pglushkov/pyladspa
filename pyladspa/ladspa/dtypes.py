@@ -59,6 +59,12 @@ class LadspaConsts:
         return bool(inp & cls.LADSPA_HINT_TOGGLED)
 
     @classmethod
+    def is_hint_properly_toggled(cls, inp):
+        lhs = inp | cls.LADSPA_HINT_DEFAULT_0 | cls.LADSPA_HINT_DEFAULT_1
+        rhs = cls.LADSPA_HINT_TOGGLED | cls.LADSPA_HINT_DEFAULT_0 | cls.LADSPA_HINT_DEFAULT_1
+        return  lhs == rhs
+
+    @classmethod
     def is_hint_samplerate(cls, inp):
         return bool(inp & cls.LADSPA_HINT_SAMPLE_RATE)
 

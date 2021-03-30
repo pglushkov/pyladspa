@@ -1,5 +1,6 @@
 import traceback
 import argparse
+import numpy
 import sys
 import os
 
@@ -7,9 +8,11 @@ from ctypes import *
 
 if __name__ == "__main__":
     from ladspa.dtypes import LADSPA_Descriptor, LADSPA_PortRangeHint, LadspaConsts
+    from ladspa.routines import calc_default_port_value
     from utils.common import find_plugins_in_lib
 else:
     from pyladspa.ladspa.dtypes import LADSPA_Descriptor, LADSPA_PortRangeHint, LadspaConsts
+    from pyladspa.ladspa.routines import calc_default_port_value
     from pyladspa.utils.common import find_plugins_in_lib
 
 
@@ -21,6 +24,11 @@ def setup_cli(arg_parser):
 
 
 def print_port_description(port_descr, port_name, port_range_hints):
+
+    """
+    This abomination is slightly improved version of the code that you can actually find
+    in LADSPA SDK. Did not have time to make a proper re-factoring, sorry :(
+    """
 
     def port_type_str(port_descr):
         res = ""
@@ -44,28 +52,67 @@ def print_port_description(port_descr, port_name, port_range_hints):
         return res
 
     def range_hint_str(hint):
-        ... stopped here ...
-        return ""
+        props = hint.HintDescriptor
+        lbnd = hint.LowerBound
+        ubnd = hint.UpperBound
+        res = ""
 
-    print("\t{}, {} {}".format(port_name.decode("utf-8"), port_type_str(port_descr), range_hint_str(port_range_hints)))
+        # step 1 : deal with boundaries
+        if LadspaConsts.is_hint_bounded_above(props) or LadspaConsts.is_hint_bounded_bellow(props):
+            res += ", "
+            if LadspaConsts.is_hint_bounded_bellow(props):
+                res += "{}*srate".format(lbnd) if LadspaConsts.is_hint_samplerate(props) else "{}".format(lbnd)
+            else:
+                res += "..."
+            res += " to "
+            if LadspaConsts.is_hint_bounded_above(props):
+                res += "{}*srate".format(ubnd) if LadspaConsts.is_hint_samplerate(props) else "{}".format(ubnd)
+            else:
+                res += "..."
+        
+        # step 2 : toggled
+        if LadspaConsts.is_hint_toggled(props):
+            if LadspaConsts.is_hint_properly_toggled(props):
+                res += ", toggled"
+            else:
+                res += ", ERROR: TOGGLED INCOMPATIBLE WITH OTHER HINT"
+
+        # step 3 : default values ...
+        if LadspaConsts.hint_has_default(props):
+            if (LadspaConsts.is_hint_default_min(props) or 
+                LadspaConsts.is_hint_default_low(props) or
+                LadspaConsts.is_hint_default_middle(props) or
+                LadspaConsts.is_hint_default_high(props) or
+                LadspaConsts.is_hint_default_max(props)
+            ):
+                d = calc_default_port_value(hint)
+                if LadspaConsts.is_hint_samplerate(props) and d != 0:
+                    res += ", default {}*srate".format(d)
+                else:
+                    res += ", default {}".format(d)
+            elif LadspaConsts.is_hint_default_0(props):
+                res += ", default 0"
+            elif LadspaConsts.is_hint_default_1(props):
+                res += ", default 1"
+            elif LadspaConsts.is_hint_default_100(props):
+                res += ", default 100"
+            elif LadspaConsts.is_hint_default_440(props):
+                res += ", default 440"
+            else:
+                res += ", UNKNOWN DEFAULT CODE"
+
+        # step 4 : leftovers ...
+        if LadspaConsts.is_hint_logarithmic(props):
+            res += ", logarithmic"
+        if LadspaConsts.is_hint_integer(props):
+            res += ", integer"
+
+        return res
+
+    print("\t\"{}\", {}{}".format(port_name.decode("utf-8"), port_type_str(port_descr), range_hint_str(port_range_hints)))
 
 
 def print_plugin_contents(plugin, classif_fmt=False):
-# Plugin Name: "Simplest amplifier"
-# Plugin Label: "bf_amplifier"
-# Plugin Unique ID: 25005
-# Maker: "Peter Glushkov"
-# Copyright: "Creative Common License"
-# Must Run Real-Time: Yes
-# Has activate() Function: No
-# Has deactivate() Function: No
-# Has run_adding() Function: No
-# Environment: Normal
-# Ports:  "in_chan_1" input, audio
-#         "out_chan_1" output, audio
-#         "linear gain" input, control, 0 to 10, default 1
-#         "mute" input, control, toggled, default 0
-
     if classif_fmt:
         print("\nPlugin Name: {}".format(plugin.Name.decode("utf-8")))
         print("Plugin Label: {}".format(plugin.Label.decode("utf-8")))
