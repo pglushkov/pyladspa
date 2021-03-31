@@ -28,6 +28,10 @@ def print_found_plugins(plugins_dict, classic_fmt=False):
         else:
             print("\n=== Plugins found in {}:".format(os.path.abspath(lib)))
         
+        if not plug_list:
+            print("    Parsing plugins in this library ended with error!")
+            continue
+
         for plug in plug_list:
             if classic_fmt:
                 print("        {} ({}/{})".format(

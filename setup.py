@@ -23,7 +23,10 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
     ],
     entry_points = {
-        'console_scripts': ['listplugins=pyladspa.listplugins:main_cli'],
+        'console_scripts': [
+            'py_listplugins=pyladspa.listplugins:main_cli',
+            'py_analyseplugin=pyladspa.analyseplugin:main_cli'
+        ],
     },
     packages=setuptools.find_packages()
 )

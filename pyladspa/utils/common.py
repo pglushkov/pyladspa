@@ -2,7 +2,7 @@ import traceback
 import ctypes
 
 from pyladspa.utils import filesystem as fs
-from pyladspa.ladspa import dtypes
+from pyladspa.ladspa import dtypes, routines
 
 def find_plugins_in_path(path):
     res = {}
@@ -14,7 +14,7 @@ def find_plugins_in_path(path):
 def find_plugins_in_lib(lib):
     try:
         ladspa_lib = ctypes.CDLL(lib)
-        get_plugin_func = dtypes.ladspa_descriptor(ladspa_lib)
+        get_plugin_func = routines.ladspa_descriptor(ladspa_lib)
         ladspa_dtors = []
         idx = 0
         while True:
